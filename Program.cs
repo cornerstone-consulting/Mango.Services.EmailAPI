@@ -1,6 +1,5 @@
 //using Mango.MessageBus;
 using Mango.Services.EmailAPI.Data;
-using Mango.Services.EmailAPI.Extension;
 using Mango.Services.EmailAPI.Messaging;
 using Mango.Services.EmailAPI.Services;
 
@@ -58,6 +57,11 @@ var emailOptions = new EmailOptions
     RegisterUserQueue =
         builder.Configuration[
             "TopicAndQueueNames:RegisterUserQueue"]
+        ?? string.Empty,
+
+    OrderCreatedEmailQueue =
+        builder.Configuration[
+            "TopicAndQueueNames:OrderCreatedEmailQueue"]
         ?? string.Empty
 };
 
@@ -85,7 +89,10 @@ builder.Configuration.AddInMemoryCollection(
             emailOptions.EmailShoppingCartQueue,
 
         ["TopicAndQueueNames:RegisterUserQueue"] =
-            emailOptions.RegisterUserQueue
+            emailOptions.RegisterUserQueue,
+        
+        ["TopicAndQueueNames:OrderCreatedEmailQueue"] =
+            emailOptions.OrderCreatedEmailQueue
     });
 
 builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
@@ -116,7 +123,7 @@ var mqSettings = builder.Configuration
 if (mqSettings.Provider == "RabbitMQ")
 {
     //TODO: Singleton service cannot use scoped services. DbContext is scoped service. Hence need variation of DbContext.
-    builder.Services.AddSingleton<IMessageConsumer, RabbitMQMessageConsumer>();
+    builder.Services.AddHostedService<RabbitMQMessageConsumer>();
 }
 /// Note: Will be used when ServiceBusConsumer will be created
 /*
@@ -149,8 +156,6 @@ app.UseAuthorization();
 app.MapControllers();
 
 ApplyMigration();
-
-app.UseRabbitMQMessageConsumer();
 
 app.Run();
 
@@ -189,5 +194,8 @@ public class EmailOptions
         string.Empty;
 
     public string RegisterUserQueue { get; set; } =
+        string.Empty;
+
+    public string OrderCreatedEmailQueue { get; set; } = 
         string.Empty;
 }
